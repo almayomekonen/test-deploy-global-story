@@ -1,17 +1,25 @@
+// src/utils/constants.js
+
 export const getProfileImageUrl = (profileImage) => {
   if (!profileImage) return "/default-avatar.png";
 
-  if (profileImage.startsWith("http")) return profileImage;
+  if (profileImage && profileImage.startsWith("http")) return profileImage;
 
-  const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:4000";
-  return `${baseUrl}/uploads/profiles/${profileImage}`;
+  if (window.location.hostname === "localhost") {
+    return `http://localhost:4000/uploads/profiles/${profileImage}`;
+  }
+
+  return `/uploads/profiles/${profileImage}`;
 };
 
 export const getPostImageUrl = (image) => {
   if (!image) return "/placeholder-image.png";
 
-  if (image.startsWith("http")) return image;
+  if (image && image.startsWith("http")) return image;
 
-  const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:4000";
-  return `${baseUrl}/uploads/posts/${image}`;
+  if (window.location.hostname === "localhost") {
+    return `http://localhost:4000/uploads/posts/${image}`;
+  }
+
+  return `/uploads/posts/${image}`;
 };
