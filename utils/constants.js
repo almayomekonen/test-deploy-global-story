@@ -21,5 +21,5 @@ export const getPostImageUrl = (image) => {
     return `http://localhost:4000/uploads/posts/${image}`;
   }
 
-  return `https://https://aardvark-stories-api.onrender.com/uploads/posts/${image}`;
+  return `https://aardvark-stories-api.onrender.com/uploads/posts/${image}`;
 };
