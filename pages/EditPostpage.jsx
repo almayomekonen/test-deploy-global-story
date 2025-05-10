@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa";
-import PostDetail from "../components/posts/PostDetail";
 
 export default function EditPostPage() {
   return (
