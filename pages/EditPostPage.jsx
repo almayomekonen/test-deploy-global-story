@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa";
+import EditPost from "../components/posts/EditPost";
 
 export default function EditPostPage() {
   return (
@@ -12,6 +13,8 @@ export default function EditPostPage() {
           <FaArrowLeft /> Back to Posts
         </Link>
       </div>
+
+      <EditPost />
     </div>
   );
 }
