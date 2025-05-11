@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { Link } from "react-router-dom";
@@ -6,15 +6,18 @@ import axios from "axios";
 import api from "../config/axios";
 import L from "leaflet";
 
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
+const defaultIcon = new L.Icon({
+  iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
   iconRetinaUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
-  iconUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-  shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+    "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
 });
+
+L.Marker.prototype.options.icon = defaultIcon;
 
 export default function Mapusers() {
   const [countriesData, setCountriesData] = useState([]);
@@ -27,11 +30,17 @@ export default function Mapusers() {
 
   async function fetchMapData() {
     try {
+      setLoading(true);
+
       const countriesRes = await axios.get(
         "https://restcountries.com/v3.1/all"
       );
 
       const userDataRes = await api.get("/map-data");
+
+      if (!userDataRes.data.success) {
+        throw new Error("Failed to fetch user map data");
+      }
 
       const mapData = [];
 
@@ -56,8 +65,7 @@ export default function Mapusers() {
 
       setCountriesData(mapData);
     } catch (err) {
-      console.error("Error loading map data:", err);
-      setError("Failed to load map data");
+      setError("Failed to load map data", err);
     } finally {
       setLoading(false);
     }
@@ -75,12 +83,16 @@ export default function Mapusers() {
     return <div className="bg-red-100 p-4 rounded">{error}</div>;
   }
 
+  if (countriesData.length === 0) {
+    return <div className="p-4 text-center">No location data available</div>;
+  }
+
   return (
     <MapContainer
       center={[20, 0]}
       zoom={2}
       style={{ height: "100%", width: "100%" }}
-      scrollWheelZoom={false}
+      scrollWheelZoom={true}
       doubleClickZoom={true}
       dragging={true}
       zoomControl={true}
@@ -91,7 +103,11 @@ export default function Mapusers() {
       />
 
       {countriesData.map((country) => (
-        <Marker key={country.name} position={[country.lat, country.lng]}>
+        <Marker
+          key={country.name}
+          position={[country.lat, country.lng]}
+          icon={defaultIcon}
+        >
           <Popup>
             <div className="text-center p-1">
               <div className="flex items-center justify-center mb-2">
@@ -112,7 +128,7 @@ export default function Mapusers() {
               {country.postId ? (
                 <Link
                   to={`/posts/${country.postId}`}
-                  className="hover:bg-gray-300 text-white px-4 py-2 rounded text-sm inline-block"
+                  className="hover:bg-gray-300 text-amber-50 px-4 py-2 rounded text-sm inline-block"
                 >
                   View Story
                 </Link>

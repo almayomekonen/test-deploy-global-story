@@ -3,7 +3,7 @@ export const getProfileImageUrl = (profileImage) => {
 
   if (profileImage.startsWith("http")) return profileImage;
 
-  return `https://aardvark-stories-api.onrender.com/uploads/profiles/${profileImage}`;
+  return `https://aardvark-stories-images.s3.eu-north-1.amazonaws.com/${profileImage}`;
 };
 
 export const getPostImageUrl = (image) => {
@@ -11,5 +11,5 @@ export const getPostImageUrl = (image) => {
 
   if (image.startsWith("http")) return image;
 
-  return `https://aardvark-stories-api.onrender.com/uploads/posts/${image}`;
+  return `https://aardvark-stories-images.s3.eu-north-1.amazonaws.com/${image}`;
 };

@@ -1,6 +1,6 @@
+import { getProfileImageUrl, getPostImageUrl } from "../../utils/constants";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { getProfileImageUrl, getPostImageUrl } from "../../utils/constants";
 import {
   FaHeart,
   FaRegHeart,
@@ -87,7 +87,7 @@ export default function PostDetailView({
           </div>
         </div>
 
-        {post.images.length > 0 && (
+        {post.images && post.images.length > 0 && (
           <div className="relative">
             <img
               src={getPostImageUrl(post.images[currentImage])}
@@ -135,16 +135,16 @@ export default function PostDetailView({
                 ) : (
                   <FaRegHeart className="cursor-pointer mr-1" />
                 )}
-                <span>{post.likes.length}</span>
+                <span>{post.likes ? post.likes.length : 0}</span>
               </button>
 
               <div className="flex items-center text-gray-600">
                 <FaRegComment className="mr-2 cursor-pointer" />
-                <span>{post.comments.length}</span>
+                <span>{post.comments ? post.comments.length : 0}</span>
               </div>
             </div>
 
-            {currentUser && currentUser._id === post.user._id && (
+            {currentUser && post.user && currentUser._id === post.user._id && (
               <div className="flex space-x-2">
                 <Link
                   to={`/posts/${post._id}/edit`}
@@ -172,8 +172,8 @@ export default function PostDetailView({
               <form onSubmit={handleCommentSubmit} className="mb-6">
                 <div className="flex">
                   <img
-                    src={getProfileImageUrl(comment.profileImage)}
-                    alt={comment.name}
+                    src={getProfileImageUrl(currentUser.profileImage)}
+                    alt={currentUser.name}
                     className="w-10 h-10 rounded-full mr-3 object-cover"
                   />
                   <div className="flex-grow">
@@ -205,9 +205,9 @@ export default function PostDetailView({
             )}
 
             {renderComments(
-              post.comments,
-              formatDate,
+              post,
               currentUser,
+              formatDate,
               handleCommentDelete,
               showAllComments,
               setShowAllComments
@@ -220,18 +220,18 @@ export default function PostDetailView({
 }
 
 function renderComments(
-  comments,
-  formatDate,
+  post,
   currentUser,
+  formatDate,
   handleCommentDelete,
   showAllComments,
   setShowAllComments
 ) {
-  if (comments.length === 0) {
+  if (!post.comments || post.comments.length === 0) {
     return <p className="text-gray-500">No comments yet, be the first!</p>;
   }
 
-  const sortedComments = [...comments].sort(
+  const sortedComments = [...post.comments].sort(
     (a, b) => new Date(b.date) - new Date(a.date)
   );
 
@@ -259,15 +259,17 @@ function renderComments(
               </div>
               <div className="flex justify-between">
                 <p className="text-gray-700">{comment.text}</p>
-                {currentUser && currentUser._id && comment.user && (
-                  <button
-                    onClick={() => handleCommentDelete(comment._id)}
-                    className="text-gray-400 hover:text-red-500 cursor-pointer"
-                    aria-label="Delete comment"
-                  >
-                    <FaTrash size={14} />
-                  </button>
-                )}
+                {currentUser &&
+                  (currentUser._id === (comment.user?._id || comment.user) ||
+                    (post.user && currentUser._id === post.user._id)) && (
+                    <button
+                      onClick={() => handleCommentDelete(comment._id)}
+                      className="text-gray-400 hover:text-red-500 cursor-pointer"
+                      aria-label="Delete comment"
+                    >
+                      <FaTrash size={14} />
+                    </button>
+                  )}
               </div>
             </div>
           </div>
