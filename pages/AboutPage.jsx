@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FaArrowDown } from "react-icons/fa";
 
 export default function AboutPage() {
   const [activeId, setActiveId] = useState(null);
@@ -10,35 +11,35 @@ export default function AboutPage() {
       role: "Project Lead & Educator",
       image: "/images/mekons.webp",
       description:
-        "Started Aardvark Stories to connect students across different cultures.",
-      quote: "`You know why? Because of the UI` Almayo Mekonen",
+        "Born in Israel, passionate about coding and guiding the next generation of developers.",
+      quote: "`You know why? Because of the UI`",
     },
     {
       id: 2,
-      name: "MR, Milner",
+      name: "Josh Milstein",
       role: "Web Developer",
       image: "/images/josh.jpg",
       description:
-        "Started Aardvark Stories to connect students across different cultures.",
-      quote: "Triple === Equal",
+        "From the UK, enjoys clean code, fresh croissants, and clever JavaScript one-liners.",
+      quote: "`The Triple Equals!`",
     },
     {
       id: 3,
-      name: "Ilan Aver",
+      name: "Ilán Averbuch",
       role: "Web Developer",
       image: "/images/ilan.jpg",
       description:
-        "Started Aardvark Stories to connect students across different cultures.",
-      quote: "",
+        "Argentinian coder who writes React by day and sips mate by night.",
+      quote: "`josh stop!`",
     },
     {
       id: 4,
       name: "Shaya Freedman",
       role: "Web Developer",
-      image: "/images/shaya.jpg",
+      image: "/images/shaya.jpeg",
       description:
-        "Started Aardvark Stories to connect students across different cultures.",
-      quote: "",
+        "UK-based developer who codes with focus and enjoys tea with biscuits on breaks.",
+      quote: "`yalla yosh!`",
     },
   ];
 
@@ -49,11 +50,17 @@ export default function AboutPage() {
           <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
             The Team Behind Aardvark Stories
           </h2>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-4">
             We're a passionate group of educators and students who believe in
             the power of storytelling to connect people across cultures and
             borders.
           </p>
+
+          <div className="flex items-center justify-center">
+            <span className="flex items-center text-lg text-gray-600 max-w-3xl mx-auto mb-4 gap-2">
+              Click on the image to see more information <FaArrowDown />
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
