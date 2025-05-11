@@ -1,6 +1,10 @@
 import { useContext, useState } from "react";
 import AuthContext from "../../context/AuthContext";
-import { getProfileImageUrl, getPostImageUrl } from "../../utils/constants";
+import {
+  getProfileImageUrl,
+  getPostImageUrl,
+  IMAGE_SIZES,
+} from "../../utils/constants";
 import api from "../../config/axios";
 import { Link } from "react-router-dom";
 import useToast from "../../hooks/useToast";
@@ -10,6 +14,8 @@ import {
   FaRegComment,
   FaRegHeart,
 } from "react-icons/fa";
+import { formatDistanceToNow } from "date-fns";
+import OptimizedImage from "../common/OptimizedImage";
 
 export default function PostCard({ post }) {
   const { currentUser } = useContext(AuthContext);
@@ -44,18 +50,25 @@ export default function PostCard({ post }) {
     }
   }
 
-  function formatDate(dateString) {
-    const options = { year: "numeric", month: "long", day: "numeric" };
-    return new Date(dateString).toLocaleDateString(undefined, options);
-  }
+  const formatDate = (date) => {
+    try {
+      return formatDistanceToNow(new Date(date), { addSuffix: true });
+    } catch {
+      return "some time ago";
+    }
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
       <div className="flex items-center mb-4">
-        <img
+        <OptimizedImage
           src={getProfileImageUrl(post.user.profileImage)}
           alt={post.user.name}
-          className="w-10 h-10 rounded-full object-cover mr-3"
+          className="w-10 h-10 rounded-full mr-3"
+          width={40}
+          height={40}
+          objectFit="cover"
+          loading="lazy"
         />
         <div>
           <p className="text-sm font-medium text-gray-500">{post.user.name}</p>
@@ -63,11 +76,18 @@ export default function PostCard({ post }) {
         </div>
       </div>
       {post.images && post.images.length > 0 ? (
-        <img
-          src={getPostImageUrl(post.images[0])}
-          alt={post.title}
-          className="w-full h-48 object-cover"
-        />
+        <Link to={`/posts/${post._id}`}>
+          <OptimizedImage
+            src={getPostImageUrl(post.images[0])}
+            alt={post.title}
+            className="w-full h-48 object-cover"
+            width={400}
+            height={192}
+            objectFit="cover"
+            loading="lazy"
+            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+          />
+        </Link>
       ) : (
         <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
           <span className="text-gray-400">No Images</span>
@@ -84,11 +104,12 @@ export default function PostCard({ post }) {
           </span>
         </div>
 
-        <h3 className="text-xl font-semibold mb-2 text-gray-800">
-          <Link to={`/posts/${post._id}`} className="hover:text-blue-600">
-            {post.title}
-          </Link>
-        </h3>
+        <Link
+          to={`/posts/${post._id}`}
+          className="text-xl font-semibold text-gray-900 mb-2 hover:text-blue-600 line-clamp-2"
+        >
+          {post.title}
+        </Link>
 
         <p className="text-gray-600 mb-4 line-clamp-3">{post.content}</p>
 

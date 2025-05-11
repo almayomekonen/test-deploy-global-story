@@ -1,40 +1,31 @@
-import { useEffect, useState } from "react";
-import api from "../../config/axios";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import PostCard from "./PostCard";
+import useApiCache from "../../hooks/useApiCache";
 
 export default function PostList({ category, userId }) {
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const {
+    data: response,
+    loading,
+    error: apiError,
+  } = useApiCache(
+    category
+      ? `/posts/category/${category}`
+      : userId
+      ? `/posts/user/${userId}`
+      : "/posts",
+    [category, userId]
+  );
+
+  const posts = response?.data || [];
+
   useEffect(() => {
-    async function fetchPosts() {
-      try {
-        setLoading(true);
-        let url = "/posts";
-
-        if (category) {
-          url = `/posts/category/${category}`;
-        } else if (userId) {
-          url = `/posts/user/${userId}`;
-        }
-
-        const response = await api.get(url);
-
-        if (response.data.success) {
-          setPosts(response.data.data);
-        }
-      } catch (error) {
-        console.error("Error fetching posts: ", error);
-        setError("Failed to load posts. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
+    if (apiError) {
+      setError("Failed to load posts. Please try again later.");
     }
-
-    fetchPosts();
-  }, [category, userId]);
+  }, [apiError]);
 
   if (loading) {
     return (
