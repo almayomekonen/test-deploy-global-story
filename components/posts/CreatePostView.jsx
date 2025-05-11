@@ -1,5 +1,3 @@
-import React from "react";
-
 const CreatePostView = ({
   formData,
   handleChange,

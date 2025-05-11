@@ -3,13 +3,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import AuthContext from "../../context/AuthContext";
 import api from "../../config/axios";
 import PostDetailView from "./PostDetailView";
-import useToast from "../../hooks/useToast";
+import toast from "../../utils/toast";
 
 export default function PostDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { currentUser } = useContext(AuthContext);
-  const toast = useToast();
 
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -39,8 +38,12 @@ export default function PostDetail() {
       } catch (error) {
         console.error("Error fetching post: ", error);
         setError(
-          "Falied to load post, It may have been removed or dosen't exist."
+          "Failed to load post. It may have been removed or doesn't exist."
         );
+
+        toast.error("Couldn't load the post", {
+          icon: "⚠️",
+        });
       } finally {
         setLoading(false);
       }
@@ -50,6 +53,10 @@ export default function PostDetail() {
 
   async function handleLike() {
     if (!currentUser) {
+      toast.info("Login required to like posts", {
+        autoClose: 1500,
+        icon: "🔒",
+      });
       navigate("/login");
       return;
     }
@@ -72,9 +79,14 @@ export default function PostDetail() {
         likes: response.data.data,
       });
 
-      toast.like(wasLiked ? "removed" : "added", post.title);
+      if (wasLiked) {
+        toast.like.removed(post.title);
+      } else {
+        toast.like.added(post.title);
+      }
     } catch (error) {
       console.error("Error liking post: ", error);
+      toast.error("Network error", { icon: "📶" });
     }
   }
 
@@ -82,11 +94,16 @@ export default function PostDetail() {
     event.preventDefault();
 
     if (!currentUser) {
+      toast.info("Login required to comment", {
+        autoClose: 1500,
+        icon: "🔒",
+      });
       navigate("/login");
       return;
     }
 
     if (!comment.trim()) {
+      toast.warning("Comment can't be empty");
       return;
     }
 
@@ -111,21 +128,31 @@ export default function PostDetail() {
 
       setComment("");
 
-      toast.comment("added", post.title);
+      toast.comment.added(post.title);
     } catch (error) {
       console.error("Error adding comment: ", error);
-      toast.error("error");
+      toast.comment.error();
     } finally {
       setSubmitting(false);
     }
   }
 
   async function handleDelete() {
-    if (!window.confirm("Are you sure you want to delete this post?")) {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this post?"
+    );
+
+    if (!confirmDelete) {
+      toast.info("Delete canceled");
       return;
     }
 
     try {
+      toast.warning("Deleting post...", {
+        autoClose: 2000,
+        icon: "⏳",
+      });
+
       const token = localStorage.getItem("token");
       const config = {
         headers: {
@@ -134,9 +161,16 @@ export default function PostDetail() {
       };
 
       await api.delete(`/posts/${post._id}`, config);
+
+      toast.success("Post deleted successfully", {
+        autoClose: 1500,
+        icon: "✅",
+      });
+
       navigate("/posts");
     } catch (error) {
       console.error("Error deleting post: ", error);
+      toast.error("Failed to delete post");
     } finally {
       setSubmitting(false);
     }
@@ -144,11 +178,17 @@ export default function PostDetail() {
 
   async function handleCommentDelete(commentId) {
     if (!currentUser) {
+      toast.info("Login required", { icon: "🔒" });
       navigate("/login");
       return;
     }
 
-    if (!window.confirm("Are you sure you want to delete this comment?")) {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this comment?"
+    );
+
+    if (!confirmDelete) {
+      toast.info("Delete canceled");
       return;
     }
 
@@ -170,10 +210,10 @@ export default function PostDetail() {
         comments: response.data.data,
       });
 
-      toast.comment("deleted");
+      toast.comment.deleted();
     } catch (error) {
-      console.error("Error deleting post: ", error);
-      toast.comment("error");
+      console.error("Error deleting comment: ", error);
+      toast.comment.error();
     } finally {
       setSubmitting(false);
     }

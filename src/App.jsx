@@ -1,11 +1,9 @@
-// src/App.jsx
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import AuthProvider from "../context/AuthProvider";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// Lazy load pages
 const Home = lazy(() => import("../pages/HomePage"));
 const Login = lazy(() => import("../pages/Login/LoginPage"));
 const Register = lazy(() => import("../pages/Register/RegisterPage"));
@@ -18,12 +16,10 @@ const EditPostPage = lazy(() => import("../pages/EditPostPage"));
 const AboutPage = lazy(() => import("../pages/AboutPage"));
 const MapPage = lazy(() => import("../pages/MapPage"));
 
-// Components
 import Navbar from "../components/layout/Navbar";
 import PrivateRoute from "../components/routing/PrivateRoute";
 import ScrollToTop from "../components/ScrollToTop";
 
-// Loading component
 const LoadingFallback = () => (
   <div className="flex justify-center items-center h-screen">
     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>

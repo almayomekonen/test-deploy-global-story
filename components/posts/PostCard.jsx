@@ -1,13 +1,9 @@
 import { useContext, useState } from "react";
 import AuthContext from "../../context/AuthContext";
-import {
-  getProfileImageUrl,
-  getPostImageUrl,
-  IMAGE_SIZES,
-} from "../../utils/constants";
+import { getProfileImageUrl, getPostImageUrl } from "../../utils/constants";
 import api from "../../config/axios";
 import { Link } from "react-router-dom";
-import useToast from "../../hooks/useToast";
+import toast from "../../utils/toast";
 import {
   FaArrowRight,
   FaHeart,
@@ -19,7 +15,6 @@ import OptimizedImage from "../common/OptimizedImage";
 
 export default function PostCard({ post }) {
   const { currentUser } = useContext(AuthContext);
-  const toast = useToast();
   const [likes, setLikes] = useState(
     post.likes.some((like) => like.user === currentUser?._id)
   );
@@ -27,6 +22,9 @@ export default function PostCard({ post }) {
 
   async function handleLike() {
     if (!currentUser) {
+      toast.info("Please log in to like posts", {
+        icon: "👤",
+      });
       return;
     }
 
@@ -44,9 +42,15 @@ export default function PostCard({ post }) {
       setLikes(!likes);
       setLikesCount(likes ? likesCount - 1 : likesCount + 1);
 
-      toast.like(wasLiked ? "removed" : "added", post.title);
+      if (wasLiked) {
+        toast.like.removed(post.title);
+      } else {
+        toast.like.added(post.title);
+      }
     } catch (error) {
       console.error("Error liking post: ", error);
+
+      toast.error("Could not update like");
     }
   }
 
