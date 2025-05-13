@@ -10,7 +10,8 @@ export default function LoginPage() {
     password: "",
   });
 
-  const { login, isAuthenticated, error, setError } = useContext(AuthContext);
+  const { login, isAuthenticated, error, setError, loading } =
+    useContext(AuthContext);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -61,15 +62,31 @@ export default function LoginPage() {
 
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {error && (
+            <div className="mb-4 bg-red-50 border-l-4 border-red-400 p-4">
+              <p className="text-sm text-red-700">
+                {error.response?.data?.message ||
+                  "Failed to sign in. Please check your credentials."}
+              </p>
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-6">
             <LoginForm onChange={handleInputChange} formData={formData} />
 
             <div>
               <button
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 shadow-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 shadow-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer disabled:opacity-70"
                 type="submit"
+                disabled={loading}
               >
-                Sign in
+                {loading ? (
+                  <>
+                    <span className="mr-2 inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    Signing in...
+                  </>
+                ) : (
+                  "Sign in"
+                )}
               </button>
             </div>
           </form>

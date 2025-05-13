@@ -84,11 +84,15 @@ export default function AuthProvider({ children }) {
       setToken(response.data.token);
       setAuthToken(response.data.token);
       await loadUser();
-      // users
       return true;
     } catch (error) {
-      console.log(error, "Error registering new user");
-      setError(error, "Error registering new user");
+      console.error("Error registering new user:", error);
+      setError(error);
+      if (error.response?.status === 404) {
+        console.error(
+          "API endpoint not found - check network connectivity or API URL"
+        );
+      }
       return false;
     } finally {
       setLoading(false);
@@ -104,12 +108,15 @@ export default function AuthProvider({ children }) {
       setToken(response.data.token);
       setAuthToken(response.data.token);
       await loadUser();
-
-      // users
       return true;
     } catch (error) {
-      console.log(error, "Error logging in new user");
-      setError(error, "Error login new user");
+      console.error("Error logging in:", error);
+      setError(error);
+      if (error.response?.status === 404) {
+        console.error(
+          "API endpoint not found - check network connectivity or API URL"
+        );
+      }
       return false;
     } finally {
       setLoading(false);
