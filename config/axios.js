@@ -1,7 +1,10 @@
 import axios from "axios";
 
-const baseURL = "/api";
-console.log(`Connecting to API at: ${baseURL}`);
+// Change this in your axios.js file
+const baseURL =
+  window.location.hostname === "localhost"
+    ? "/api" // For development on your computer
+    : "https://aardvark-stories-api.onrender.com/api"; // For the internet version
 
 const api = axios.create({
   baseURL,
