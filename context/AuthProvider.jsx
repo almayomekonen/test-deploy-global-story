@@ -10,7 +10,6 @@ export default function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState();
 
-  // token provider
   const setAuthToken = useCallback((token) => {
     if (token) {
       api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
@@ -28,6 +27,13 @@ export default function AuthProvider({ children }) {
       const decoded = jwtDecode(token);
       const currentTime = Date.now() / 1000;
 
+      const expiresIn = decoded.exp - currentTime;
+      console.log(
+        `Token expires in ${Math.floor(
+          expiresIn / 60
+        )} minutes and ${Math.floor(expiresIn % 60)} seconds`
+      );
+
       if (decoded.exp < currentTime + 60) {
         console.log("Token expired or expiring soon, logging out");
         setToken(null);
@@ -38,13 +44,30 @@ export default function AuthProvider({ children }) {
       }
     } catch (error) {
       console.error("Token validation error:", error);
-      setToken(null);
-      setCurrentUser(null);
-      setIsAuthenticated(false);
-      setAuthToken(null);
-      localStorage.removeItem("token");
+
+      if (
+        error.message &&
+        (error.message.includes("Invalid token") ||
+          error.message.includes("JWT"))
+      ) {
+        setToken(null);
+        setCurrentUser(null);
+        setIsAuthenticated(false);
+        setAuthToken(null);
+        localStorage.removeItem("token");
+      }
     }
   }, [token, setAuthToken]);
+
+  useEffect(() => {
+    const tokenCheckInterval = setInterval(() => {
+      if (token) {
+        checkTokenExpiration();
+      }
+    }, 60000);
+
+    return () => clearInterval(tokenCheckInterval);
+  }, [token, checkTokenExpiration]);
 
   const loadUser = useCallback(async () => {
     if (!token) {

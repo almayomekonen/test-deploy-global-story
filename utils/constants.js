@@ -4,10 +4,17 @@ export const getProfileImageUrl = (profileImage) => {
   if (typeof profileImage === "string" && profileImage.startsWith("http"))
     return profileImage;
 
-  const baseUrl =
+  const s3BucketUrl =
     "https://aardvark-stories-images.s3.eu-north-1.amazonaws.com/";
 
-  if (typeof profileImage === "string") return `${baseUrl}${profileImage}`;
+  if (typeof profileImage === "string") {
+    if (profileImage.includes("aardvark-stories-images")) {
+      const parts = profileImage.split("aardvark-stories-images");
+      const key = parts[parts.length - 1].replace(/^[/.]/g, "");
+      return `${s3BucketUrl}${key}`;
+    }
+    return `${s3BucketUrl}${profileImage}`;
+  }
 
   return "/default-avatar.png";
 };
@@ -30,10 +37,28 @@ export const getPostImageUrl = (image, size = "original") => {
   }
 
   if (typeof image === "string") {
-    const baseUrl =
+    const s3BucketUrl =
       "https://aardvark-stories-images.s3.eu-north-1.amazonaws.com/";
 
-    if (size === "original") return `${baseUrl}${image}`;
+    if (image.includes("aardvark-stories-images")) {
+      const parts = image.split("aardvark-stories-images");
+      const key = parts[parts.length - 1].replace(/^[/.]/g, "");
+
+      if (size === "original") return `${s3BucketUrl}${key}`;
+
+      try {
+        const ext = key.includes(".") ? key.slice(key.lastIndexOf(".")) : "";
+        const base = key.includes(".")
+          ? key.slice(0, key.lastIndexOf("."))
+          : key;
+        return `${s3BucketUrl}${base}-${size}${ext}`;
+      } catch (error) {
+        console.error("Error formatting image URL:", error);
+        return `${s3BucketUrl}${key}`;
+      }
+    }
+
+    if (size === "original") return `${s3BucketUrl}${image}`;
 
     try {
       const ext = image.includes(".")
@@ -42,10 +67,10 @@ export const getPostImageUrl = (image, size = "original") => {
       const base = image.includes(".")
         ? image.slice(0, image.lastIndexOf("."))
         : image;
-      return `${baseUrl}${base}-${size}${ext}`;
+      return `${s3BucketUrl}${base}-${size}${ext}`;
     } catch (error) {
       console.error("Error formatting image URL:", error);
-      return `${baseUrl}${image}`;
+      return `${s3BucketUrl}${image}`;
     }
   }
 

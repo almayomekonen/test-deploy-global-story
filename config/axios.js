@@ -1,6 +1,5 @@
 import axios from "axios";
 
-// Set API URL based on environment
 const baseURL =
   window.location.hostname === "localhost"
     ? "/api"
@@ -8,41 +7,76 @@ const baseURL =
 
 console.log(`Connecting to API at: ${baseURL}`);
 
+const wakeupApi = axios.create({
+  baseURL: "https://aardvark-stories-api.onrender.com/api",
+  timeout: 30000,
+});
+
+const wakeupBackend = async () => {
+  try {
+    console.log("Attempting to wake up backend server...");
+    await wakeupApi.get("/test");
+    console.log("Backend server is awake!");
+    return true;
+  } catch (error) {
+    console.log(
+      "Backend wakeup ping failed or server is already awake",
+      error.message
+    );
+    return false;
+  }
+};
+
+wakeupBackend();
+
 const api = axios.create({
   baseURL,
-  timeout: 20000, // Increased timeout for mobile connections
+  timeout: 20000,
   headers: {
     "Content-Type": "application/json",
   },
-  // Retry configuration for network issues
+
   maxRetries: 3,
   retryDelay: 1000,
 });
 
-// Add a retry mechanism for failed requests
 api.interceptors.response.use(
   (response) => {
     return response;
   },
   async (error) => {
-    // Get the original request configurations
     const { config } = error;
 
-    // Set the retry count if it doesn't exist
+    if (!config) return Promise.reject(error);
+
     config.retryCount = config.retryCount || 0;
 
-    // Check if we need to retry (network errors or 5xx errors)
     const shouldRetry =
       config.retryCount < api.defaults.maxRetries &&
       (error.code === "ECONNABORTED" ||
         error.code === "ERR_NETWORK" ||
-        (error.response && error.response.status >= 500));
+        (error.response &&
+          (error.response.status >= 500 || error.response.status === 404)));
+
+    if (
+      shouldRetry &&
+      config.retryCount === 0 &&
+      (error.code === "ERR_NETWORK" ||
+        (error.response && error.response.status === 404))
+    ) {
+      try {
+        console.log("Trying to wake up backend before retry...");
+        await wakeupBackend();
+
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      } catch (wakeupError) {
+        console.log("Backend wakeup failed:", wakeupError);
+      }
+    }
 
     if (shouldRetry) {
-      // Increase the retry count
       config.retryCount += 1;
 
-      // Create a new promise to retry after delay
       const delay = config.retryCount * api.defaults.retryDelay;
       console.log(
         `Retrying request (${config.retryCount}/${api.defaults.maxRetries}) after ${delay}ms`
