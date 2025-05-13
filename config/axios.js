@@ -3,12 +3,12 @@ import axios from "axios";
 const baseURL =
   window.location.hostname === "localhost"
     ? "/api"
-    : "https://api-backend-vercel.vercel.app/api";
+    : "https://aardvark-stories-api.onrender.com/api";
 
 console.log(`Connecting to API at: ${baseURL}`);
 
 const wakeupApi = axios.create({
-  baseURL: "https://api-backend-vercel.vercel.app/api",
+  baseURL: "https://aardvark-stories-api.onrender.com/api",
   timeout: 30000,
 });
 

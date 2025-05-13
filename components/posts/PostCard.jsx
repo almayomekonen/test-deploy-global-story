@@ -14,10 +14,16 @@ import { formatDistanceToNow } from "date-fns";
 
 const PostCard = memo(({ post }) => {
   const { currentUser } = useContext(AuthContext);
-  const [likes, setLikes] = useState(
-    post.likes.some((like) => like.user === currentUser?._id)
+
+  const hasLiked =
+    Array.isArray(post.likes) && currentUser?._id
+      ? post.likes.some((like) => like.user === currentUser._id)
+      : false;
+
+  const [likes, setLikes] = useState(hasLiked);
+  const [likesCount, setLikesCount] = useState(
+    Array.isArray(post.likes) ? post.likes.length : 0
   );
-  const [likesCount, setLikesCount] = useState(post.likes.length);
   const [imageUrl, setImageUrl] = useState(null);
 
   useEffect(() => {
@@ -84,18 +90,23 @@ const PostCard = memo(({ post }) => {
     }
   };
 
+  // Safely check if user exists before accessing its properties
+  const userProfile = post.user || {};
+
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
       <div className="flex items-center p-4">
         <img
-          src={getProfileImageUrl(post.user.profileImage)}
-          alt={post.user.name}
+          src={getProfileImageUrl(userProfile.profileImage)}
+          alt={userProfile.name || "User"}
           className="w-10 h-10 rounded-full mr-3 object-cover"
           loading="lazy"
         />
         <div>
-          <p className="text-sm font-medium text-gray-500">{post.user.name}</p>
-          <p className="text-xs text-gray-500">{post.user.country}</p>
+          <p className="text-sm font-medium text-gray-500">
+            {userProfile.name || "Unknown User"}
+          </p>
+          <p className="text-xs text-gray-500">{userProfile.country || ""}</p>
         </div>
       </div>
       {post.images && post.images.length > 0 && imageUrl ? (
@@ -115,7 +126,7 @@ const PostCard = memo(({ post }) => {
       <div className="p-4">
         <div className="flex justify-between items-start mb-2">
           <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-            {post.category}
+            {post.category || "Uncategorized"}
           </span>
           <span className="text-xs text-gray-500">
             {formatDate(post.createdAt)}
@@ -150,7 +161,9 @@ const PostCard = memo(({ post }) => {
               className="flex items-center text-gray-500 hover:text-blue-600"
             >
               <FaRegComment className="mr-1" />
-              <span>{post.comments.length}</span>
+              <span>
+                {Array.isArray(post.comments) ? post.comments.length : 0}
+              </span>
             </Link>
           </div>
 
