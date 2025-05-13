@@ -22,46 +22,54 @@ export default function AuthProvider({ children }) {
   }, []);
 
   const checkTokenExpiration = useCallback(() => {
-    if (token) {
-      setLoading(true);
-      try {
-        const decode = jwtDecode(token);
-        const currentTime = Date.now() / 1000;
+    if (!token) return;
 
-        if (decode.exp < currentTime) {
-          setToken(null);
-          setCurrentUser(null);
-          setIsAuthenticated(false);
-          setAuthToken(null);
-        }
-      } catch (error) {
-        console.error("Token decode Error", error);
+    try {
+      const decoded = jwtDecode(token);
+      const currentTime = Date.now() / 1000;
+
+      if (decoded.exp < currentTime + 60) {
+        console.log("Token expired or expiring soon, logging out");
         setToken(null);
         setCurrentUser(null);
         setIsAuthenticated(false);
         setAuthToken(null);
-      } finally {
-        setLoading(false);
+        localStorage.removeItem("token");
       }
+    } catch (error) {
+      console.error("Token validation error:", error);
+      setToken(null);
+      setCurrentUser(null);
+      setIsAuthenticated(false);
+      setAuthToken(null);
+      localStorage.removeItem("token");
     }
-  }, [setAuthToken, token]);
+  }, [token, setAuthToken]);
 
   const loadUser = useCallback(async () => {
-    if (!token) return;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     try {
       setAuthToken(token);
       const response = await api.get("/auth/me");
-      setCurrentUser(response.data.user);
 
-      setIsAuthenticated(true);
+      if (response.data && response.data.success && response.data.user) {
+        setCurrentUser(response.data.user);
+        setIsAuthenticated(true);
+      } else {
+        throw new Error("Invalid user data received");
+      }
     } catch (error) {
-      console.log(error);
+      console.error("Error loading user:", error.message || error);
       setCurrentUser(null);
       setToken(null);
       setIsAuthenticated(false);
       setAuthToken(null);
+      localStorage.removeItem("token");
     } finally {
       setLoading(false);
     }

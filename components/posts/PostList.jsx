@@ -1,31 +1,70 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import PostCard from "./PostCard";
-import useApiCache from "../../hooks/useApiCache";
+import api from "../../config/axios";
 
 export default function PostList({ category, userId }) {
   const [error, setError] = useState(null);
-
-  const {
-    data: response,
-    loading,
-    error: apiError,
-  } = useApiCache(
-    category
-      ? `/posts/category/${category}`
-      : userId
-      ? `/posts/user/${userId}`
-      : "/posts",
-    [category, userId]
-  );
-
-  const posts = response?.data || [];
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (apiError) {
-      setError("Failed to load posts. Please try again later.");
-    }
-  }, [apiError]);
+    let isMounted = true;
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    const fetchPosts = async (retryCount = 0) => {
+      try {
+        if (!isMounted) return;
+
+        setLoading(true);
+        setError(null);
+
+        const url = category
+          ? `/posts/category/${category}`
+          : userId
+          ? `/posts/user/${userId}`
+          : "/posts";
+
+        const response = await api.get(url, { signal });
+
+        if (!isMounted) return;
+
+        if (response.data && response.data.success) {
+          setPosts(response.data.data || []);
+        } else {
+          throw new Error("Failed to load posts. Please try again later.");
+        }
+      } catch (err) {
+        if (!isMounted) return;
+
+        if (err.name === "AbortError") {
+          console.log("Request was aborted");
+        } else if (
+          retryCount < 2 &&
+          (err.message.includes("network") || err.code === "ECONNABORTED")
+        ) {
+          console.log(`Retrying fetch (${retryCount + 1}/2)...`);
+          setTimeout(() => fetchPosts(retryCount + 1), 1000);
+          return;
+        } else {
+          console.error("Error fetching posts:", err);
+          setError("Failed to load posts. Please try again later.");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchPosts();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [category, userId]);
 
   if (loading) {
     return (

@@ -5,8 +5,17 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  server: {
+    port: 3001,
+    proxy: {
+      "/api": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
   build: {
-    // Removing terser minify option, will use esbuild (default)
     cssMinify: true,
     rollupOptions: {
       output: {
@@ -14,15 +23,6 @@ export default defineConfig({
           vendor: ["react", "react-dom", "react-router-dom"],
           leaflet: ["leaflet", "react-leaflet"],
         },
-      },
-    },
-  },
-  server: {
-    port: 3000,
-    proxy: {
-      "/api": {
-        target: "http://localhost:4000",
-        changeOrigin: true,
       },
     },
   },

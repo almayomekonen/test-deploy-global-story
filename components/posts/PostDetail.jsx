@@ -4,6 +4,7 @@ import AuthContext from "../../context/AuthContext";
 import api from "../../config/axios";
 import PostDetailView from "./PostDetailView";
 import toast from "../../utils/toast";
+import { getPostImageUrl } from "../../utils/constants";
 
 export default function PostDetail() {
   const { id } = useParams();
@@ -25,13 +26,23 @@ export default function PostDetail() {
         const response = await api.get(`/posts/${id}`);
 
         if (response.data.success) {
-          setPost(response.data.data);
+          const postData = response.data.data;
+          if (postData.images && Array.isArray(postData.images)) {
+            postData.images = postData.images.map((img) => {
+              if (typeof img === "string") {
+                return img.startsWith("http") ? img : getPostImageUrl(img);
+              } else if (typeof img === "object" && img.original) {
+                return img.original;
+              }
+              return "/placeholder-image.png";
+            });
+          }
+
+          setPost(postData);
 
           if (currentUser) {
             setLiked(
-              response.data.data.likes.some(
-                (like) => like.user === currentUser._id
-              )
+              postData.likes.some((like) => like.user === currentUser._id)
             );
           }
         }
@@ -48,6 +59,7 @@ export default function PostDetail() {
         setLoading(false);
       }
     }
+
     fetchPost();
   }, [currentUser, id]);
 

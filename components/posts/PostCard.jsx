@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useState, memo, useEffect } from "react";
 import AuthContext from "../../context/AuthContext";
 import { getProfileImageUrl, getPostImageUrl } from "../../utils/constants";
 import api from "../../config/axios";
@@ -11,14 +11,36 @@ import {
   FaRegHeart,
 } from "react-icons/fa";
 import { formatDistanceToNow } from "date-fns";
-import OptimizedImage from "../common/OptimizedImage";
 
-export default function PostCard({ post }) {
+const PostCard = memo(({ post }) => {
   const { currentUser } = useContext(AuthContext);
   const [likes, setLikes] = useState(
     post.likes.some((like) => like.user === currentUser?._id)
   );
   const [likesCount, setLikesCount] = useState(post.likes.length);
+  const [imageUrl, setImageUrl] = useState(null);
+
+  useEffect(() => {
+    if (post.images && post.images.length > 0) {
+      const firstImage = post.images[0];
+      let finalImageUrl;
+
+      if (typeof firstImage === "string") {
+        if (firstImage.startsWith("http")) {
+          finalImageUrl = firstImage;
+        } else {
+          finalImageUrl = getPostImageUrl(firstImage, "medium");
+        }
+      } else if (typeof firstImage === "object") {
+        finalImageUrl =
+          firstImage.medium || firstImage.original || "/placeholder-image.png";
+      } else {
+        finalImageUrl = "/placeholder-image.png";
+      }
+
+      setImageUrl(finalImageUrl);
+    }
+  }, [post]);
 
   async function handleLike() {
     if (!currentUser) {
@@ -64,14 +86,11 @@ export default function PostCard({ post }) {
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
-      <div className="flex items-center mb-4">
-        <OptimizedImage
+      <div className="flex items-center p-4">
+        <img
           src={getProfileImageUrl(post.user.profileImage)}
           alt={post.user.name}
-          className="w-10 h-10 rounded-full mr-3"
-          width={40}
-          height={40}
-          objectFit="cover"
+          className="w-10 h-10 rounded-full mr-3 object-cover"
           loading="lazy"
         />
         <div>
@@ -79,17 +98,13 @@ export default function PostCard({ post }) {
           <p className="text-xs text-gray-500">{post.user.country}</p>
         </div>
       </div>
-      {post.images && post.images.length > 0 ? (
+      {post.images && post.images.length > 0 && imageUrl ? (
         <Link to={`/posts/${post._id}`}>
-          <OptimizedImage
-            src={getPostImageUrl(post.images[0])}
+          <img
+            src={imageUrl}
             alt={post.title}
             className="w-full h-48 object-cover"
-            width={400}
-            height={192}
-            objectFit="cover"
             loading="lazy"
-            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
           />
         </Link>
       ) : (
@@ -97,7 +112,6 @@ export default function PostCard({ post }) {
           <span className="text-gray-400">No Images</span>
         </div>
       )}
-
       <div className="p-4">
         <div className="flex justify-between items-start mb-2">
           <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
@@ -150,4 +164,6 @@ export default function PostCard({ post }) {
       </div>
     </div>
   );
-}
+});
+
+export default PostCard;

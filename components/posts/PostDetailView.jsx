@@ -1,4 +1,4 @@
-import { getProfileImageUrl, getPostImageUrl } from "../../utils/constants";
+import { getProfileImageUrl } from "../../utils/constants";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -90,7 +90,7 @@ export default function PostDetailView({
         {post.images && post.images.length > 0 && (
           <div className="relative">
             <img
-              src={getPostImageUrl(post.images[currentImage])}
+              src={post.images[currentImage]}
               alt={post.title}
               className="w-full max-h-96 object-contain bg-gray-100"
             />
@@ -112,7 +112,6 @@ export default function PostDetailView({
             )}
           </div>
         )}
-
         <div className="md:p-6 p-2">
           <div className="prose max-w-none mb-6">
             <p className="whitespace-pre-line">{post.content}</p>
