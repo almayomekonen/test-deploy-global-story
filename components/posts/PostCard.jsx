@@ -17,7 +17,11 @@ const PostCard = memo(({ post }) => {
 
   const hasLiked =
     Array.isArray(post.likes) && currentUser?._id
-      ? post.likes.some((like) => like.user === currentUser._id)
+      ? post.likes.some((like) => {
+          return typeof like.user === "string"
+            ? like.user === currentUser._id
+            : like.user._id === currentUser._id;
+        })
       : false;
 
   const [likes, setLikes] = useState(hasLiked);
@@ -64,20 +68,26 @@ const PostCard = memo(({ post }) => {
         },
       };
 
-      await api.put(`/posts/${post._id}/like`, {}, config);
+      const response = await api.put(`/posts/${post._id}/like`, {}, config);
 
-      const wasLiked = likes;
-      setLikes(!likes);
-      setLikesCount(likes ? likesCount - 1 : likesCount + 1);
+      const updatedLikes = response.data.data;
 
-      if (wasLiked) {
-        toast.like.removed(post.title);
-      } else {
+      const isNowLiked = updatedLikes.some((like) =>
+        typeof like.user === "string"
+          ? like.user === currentUser._id
+          : like.user._id === currentUser._id
+      );
+
+      setLikes(isNowLiked);
+      setLikesCount(updatedLikes.length);
+
+      if (isNowLiked) {
         toast.like.added(post.title);
+      } else {
+        toast.like.removed(post.title);
       }
     } catch (error) {
       console.error("Error liking post: ", error);
-
       toast.error("Could not update like");
     }
   }
@@ -90,7 +100,6 @@ const PostCard = memo(({ post }) => {
     }
   };
 
-  // Safely check if user exists before accessing its properties
   const userProfile = post.user || {};
 
   return (

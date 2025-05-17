@@ -63,7 +63,7 @@ export default function UserPosts() {
 
       {posts.length === 0 ? (
         <div className="bg-gray-50 rounded-lg p-8 text-center">
-          <p className="mb-4">you haven't shared any stories yet.</p>
+          <p className="mb-4">You haven't shared any stories yet.</p>
 
           <Link
             to="/create-post"

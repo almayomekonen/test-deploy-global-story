@@ -27,6 +27,7 @@ export default function PostDetail() {
 
         if (response.data.success) {
           const postData = response.data.data;
+
           if (postData.images && Array.isArray(postData.images)) {
             postData.images = postData.images.map((img) => {
               if (typeof img === "string") {
@@ -42,7 +43,11 @@ export default function PostDetail() {
 
           if (currentUser) {
             setLiked(
-              postData.likes.some((like) => like.user === currentUser._id)
+              postData.likes.some(
+                (like) =>
+                  like.user === currentUser._id ||
+                  (like.user && like.user._id === currentUser._id)
+              )
             );
           }
         }
@@ -51,10 +56,7 @@ export default function PostDetail() {
         setError(
           "Failed to load post. It may have been removed or doesn't exist."
         );
-
-        toast.error("Couldn't load the post", {
-          icon: "⚠️",
-        });
+        toast.error("Couldn't load the post", { icon: "⚠️" });
       } finally {
         setLoading(false);
       }
@@ -76,44 +78,43 @@ export default function PostDetail() {
     try {
       const token = localStorage.getItem("token");
       const config = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       };
+
       const response = await api.put(`/posts/${post._id}/like`, {}, config);
+      const updatedLikes = response.data.data;
 
-      const wasLiked = liked;
+      const userHasLiked = updatedLikes.some(
+        (like) =>
+          like.user === currentUser._id ||
+          (like.user && like.user._id === currentUser._id)
+      );
 
-      setLiked(!liked);
+      setPost((prevPost) => ({
+        ...prevPost,
+        likes: updatedLikes,
+      }));
 
-      setPost({
-        ...post,
-        likes: response.data.data,
-      });
+      setLiked(userHasLiked);
 
-      if (wasLiked) {
-        toast.like.removed(post.title);
-      } else {
-        toast.like.added(post.title);
-      }
+      toast.like[userHasLiked ? "added" : "removed"](post.title); // ✅ use new value
     } catch (error) {
       console.error("Error liking post: ", error);
       toast.error("Network error", { icon: "📶" });
     }
   }
 
+  function handleImageChange(index) {
+    setCurrentImage(index);
+  }
+
   async function handleCommentSubmit(event) {
     event.preventDefault();
-
     if (!currentUser) {
-      toast.info("Login required to comment", {
-        autoClose: 1500,
-        icon: "🔒",
-      });
+      toast.info("Login required to comment", { autoClose: 1500, icon: "🔒" });
       navigate("/login");
       return;
     }
-
     if (!comment.trim()) {
       toast.warning("Comment can't be empty");
       return;
@@ -123,9 +124,7 @@ export default function PostDetail() {
       setSubmitting(true);
       const token = localStorage.getItem("token");
       const config = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       };
       const response = await api.post(
         `/posts/${post._id}/comments`,
@@ -133,56 +132,15 @@ export default function PostDetail() {
         config
       );
 
-      setPost({
-        ...post,
+      setPost((prevPost) => ({
+        ...prevPost,
         comments: response.data.data,
-      });
-
+      }));
       setComment("");
-
       toast.comment.added(post.title);
     } catch (error) {
       console.error("Error adding comment: ", error);
       toast.comment.error();
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function handleDelete() {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this post?"
-    );
-
-    if (!confirmDelete) {
-      toast.info("Delete canceled");
-      return;
-    }
-
-    try {
-      toast.warning("Deleting post...", {
-        autoClose: 2000,
-        icon: "⏳",
-      });
-
-      const token = localStorage.getItem("token");
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
-
-      await api.delete(`/posts/${post._id}`, config);
-
-      toast.success("Post deleted successfully", {
-        autoClose: 1500,
-        icon: "✅",
-      });
-
-      navigate("/posts");
-    } catch (error) {
-      console.error("Error deleting post: ", error);
-      toast.error("Failed to delete post");
     } finally {
       setSubmitting(false);
     }
@@ -198,7 +156,6 @@ export default function PostDetail() {
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this comment?"
     );
-
     if (!confirmDelete) {
       toast.info("Delete canceled");
       return;
@@ -207,39 +164,56 @@ export default function PostDetail() {
     try {
       const token = localStorage.getItem("token");
       const config = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       };
-
       const response = await api.delete(
         `/posts/${post._id}/comments/${commentId}`,
         config
       );
 
-      setPost({
-        ...post,
+      setPost((prevPost) => ({
+        ...prevPost,
         comments: response.data.data,
-      });
+      }));
 
       toast.comment.deleted();
     } catch (error) {
       console.error("Error deleting comment: ", error);
       toast.comment.error();
-    } finally {
-      setSubmitting(false);
     }
   }
 
-  function handleImageChange(index) {
-    setCurrentImage(index);
+  async function handleDelete() {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this post?"
+    );
+    if (!confirmDelete) {
+      toast.info("Delete canceled");
+      return;
+    }
+
+    try {
+      toast.warning("Deleting post...", { autoClose: 2000, icon: "⏳" });
+      const token = localStorage.getItem("token");
+      const config = {
+        headers: { Authorization: `Bearer ${token}` },
+      };
+
+      await api.delete(`/posts/${post._id}`, config);
+      toast.success("Post deleted successfully", {
+        autoClose: 1500,
+        icon: "✅",
+      });
+      navigate("/posts");
+    } catch (error) {
+      console.error("Error deleting post: ", error);
+      toast.error("Failed to delete post");
+    }
   }
 
   function formatDate(dateString) {
     const date = new Date(dateString);
-    if (isNaN(date)) {
-      return "Invalid date";
-    }
+    if (isNaN(date)) return "Invalid date";
     const day = date.getDate();
     const month = date.toLocaleString("default", { month: "long" });
     const year = date.getFullYear();
