@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const baseURL = "/api"; // works via Vite proxy
+const baseURL = import.meta.env.VITE_API_URL || "/api";
 
 const wakeupApi = axios.create({ baseURL, timeout: 30000 });
 

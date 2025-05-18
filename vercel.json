@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://aardvark-stories-api.onrender.com/api/:path*"
+      "destination": "https://test-deploy-global-story-backend-production.up.railway.app/api/:path*"
     },
     {
       "source": "/(.*)",
