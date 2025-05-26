@@ -1,96 +1,44 @@
-import { useContext, useState, memo, useEffect } from "react";
-import AuthContext from "../../context/AuthContext";
-import { getProfileImageUrl, getPostImageUrl } from "../../utils/constants";
-import api from "../../config/axios";
+// components/PostCard.jsx – reactive Zustand version
+import { useContext } from "react";
 import { Link } from "react-router-dom";
-import toast from "../../utils/toast";
 import {
-  FaArrowRight,
   FaHeart,
-  FaRegComment,
   FaRegHeart,
+  FaRegComment,
+  FaArrowRight,
 } from "react-icons/fa";
 import { formatDistanceToNow } from "date-fns";
+import AuthContext from "../../context/AuthContext";
+import usePostsStore from "../../store/usePostsStore";
+import { getProfileImageUrl, getPostImageUrl } from "../../utils/constants";
+import toast from "../../utils/toast";
 
-const PostCard = memo(({ post }) => {
+export default function PostCard({ postId }) {
   const { currentUser } = useContext(AuthContext);
+  const post = usePostsStore((state) =>
+    state.posts.find((p) => p._id === postId)
+  );
+  const toggleLike = usePostsStore((state) => state.toggleLike);
+
+  if (!post) return null;
 
   const hasLiked =
     Array.isArray(post.likes) && currentUser?._id
-      ? post.likes.some((like) => {
-          return typeof like.user === "string"
+      ? post.likes.some((like) =>
+          typeof like.user === "string"
             ? like.user === currentUser._id
-            : like.user._id === currentUser._id;
-        })
+            : like.user?._id === currentUser._id
+        )
       : false;
 
-  const [likes, setLikes] = useState(hasLiked);
-  const [likesCount, setLikesCount] = useState(
-    Array.isArray(post.likes) ? post.likes.length : 0
-  );
-  const [imageUrl, setImageUrl] = useState(null);
-
-  useEffect(() => {
-    if (post.images && post.images.length > 0) {
-      const firstImage = post.images[0];
-      let finalImageUrl;
-
-      if (typeof firstImage === "string") {
-        if (firstImage.startsWith("http")) {
-          finalImageUrl = firstImage;
-        } else {
-          finalImageUrl = getPostImageUrl(firstImage, "medium");
-        }
-      } else if (typeof firstImage === "object") {
-        finalImageUrl =
-          firstImage.medium || firstImage.original || "/placeholder-image.png";
-      } else {
-        finalImageUrl = "/placeholder-image.png";
-      }
-
-      setImageUrl(finalImageUrl);
-    }
-  }, [post]);
-
-  async function handleLike() {
+  const handleLike = () => {
     if (!currentUser) {
-      toast.info("Please log in to like posts", {
-        icon: "👤",
-      });
+      toast.info("Please log in to like posts", { icon: "👤" });
       return;
     }
-
-    try {
-      const token = localStorage.getItem("token");
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
-
-      const response = await api.put(`/posts/${post._id}/like`, {}, config);
-
-      const updatedLikes = response.data.data;
-
-      const isNowLiked = updatedLikes.some((like) =>
-        typeof like.user === "string"
-          ? like.user === currentUser._id
-          : like.user._id === currentUser._id
-      );
-
-      setLikes(isNowLiked);
-      setLikesCount(updatedLikes.length);
-
-      if (isNowLiked) {
-        toast.like.added(post.title);
-      } else {
-        toast.like.removed(post.title);
-      }
-    } catch (error) {
-      console.error("Error liking post: ", error);
-      toast.error("Could not update like");
-    }
-  }
+    const token = localStorage.getItem("token");
+    toggleLike(post._id, token);
+  };
 
   const formatDate = (date) => {
     try {
@@ -99,6 +47,22 @@ const PostCard = memo(({ post }) => {
       return "some time ago";
     }
   };
+
+  const imageUrl = (() => {
+    if (!post.images || post.images.length === 0) return null;
+    const firstImage = post.images[0];
+    if (typeof firstImage === "string") {
+      return firstImage.startsWith("http")
+        ? firstImage
+        : getPostImageUrl(firstImage, "medium");
+    }
+    if (typeof firstImage === "object") {
+      return (
+        firstImage.medium || firstImage.original || "/placeholder-image.png"
+      );
+    }
+    return "/placeholder-image.png";
+  })();
 
   const userProfile = post.user || {};
 
@@ -118,7 +82,8 @@ const PostCard = memo(({ post }) => {
           <p className="text-xs text-gray-500">{userProfile.country || ""}</p>
         </div>
       </div>
-      {post.images && post.images.length > 0 && imageUrl ? (
+
+      {imageUrl ? (
         <Link to={`/posts/${post._id}`}>
           <img
             src={imageUrl}
@@ -132,6 +97,7 @@ const PostCard = memo(({ post }) => {
           <span className="text-gray-400">No Images</span>
         </div>
       )}
+
       <div className="p-4">
         <div className="flex justify-between items-start mb-2">
           <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
@@ -157,12 +123,12 @@ const PostCard = memo(({ post }) => {
               onClick={handleLike}
               className="flex items-center text-gray-500 hover:text-blue-600"
             >
-              {likes ? (
+              {hasLiked ? (
                 <FaHeart className="text-red-500 mr-1 cursor-pointer" />
               ) : (
                 <FaRegHeart className="cursor-pointer mr-1" />
               )}
-              <span>{likesCount}</span>
+              <span>{post.likes?.length || 0}</span>
             </button>
 
             <Link
@@ -186,6 +152,4 @@ const PostCard = memo(({ post }) => {
       </div>
     </div>
   );
-});
-
-export default PostCard;
+}

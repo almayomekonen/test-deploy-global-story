@@ -19,53 +19,52 @@ const defaultIcon = new L.Icon({
 
 L.Marker.prototype.options.icon = defaultIcon;
 
-export default function Mapusers() {
-  const [countriesData, setCountriesData] = useState([]);
+export default function MapUsers() {
+  const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    fetchMapData();
+    fetchData();
   }, []);
 
-  async function fetchMapData() {
+  async function fetchData() {
     try {
       setLoading(true);
+      setError("");
 
-      const countriesRes = await axios.get(
-        "https://restcountries.com/v3.1/all"
-      );
+      const [countriesRes, userMapRes] = await Promise.all([
+        axios.get("https://restcountries.com/v3.1/all"),
+        api.get("/map-data"),
+      ]);
 
-      const userDataRes = await api.get("/map-data");
+      if (!userMapRes.data.success) throw new Error("Failed to load user data");
 
-      if (!userDataRes.data.success) {
-        throw new Error("Failed to fetch user map data");
-      }
+      const locationData = userMapRes.data.countries
+        .map((entry) => {
+          const match = countriesRes.data.find(
+            (c) =>
+              c.name.common.toLowerCase() === entry.name.toLowerCase() ||
+              c.name.official.toLowerCase() === entry.name.toLowerCase()
+          );
 
-      const mapData = [];
+          if (!match || !match.latlng) return null;
 
-      userDataRes.data.countries.forEach((country) => {
-        const match = countriesRes.data.find(
-          (c) =>
-            c.name.common.toLowerCase() === country.name.toLowerCase() ||
-            c.name.official.toLowerCase() === country.name.toLowerCase()
-        );
-
-        if (match && match.latlng) {
-          mapData.push({
+          return {
             name: match.name.common,
-            count: country.count,
             lat: match.latlng[0],
             lng: match.latlng[1],
-            flag: match.flags.png,
-            postId: country.postId,
-          });
-        }
-      });
+            count: entry.count,
+            postId: entry.postId,
+            flag: match.flags?.png || "",
+          };
+        })
+        .filter(Boolean); // Remove nulls
 
-      setCountriesData(mapData);
+      setLocations(locationData);
     } catch (err) {
-      setError("Failed to load map data", err);
+      console.error(err);
+      setError("Failed to load map data. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -74,17 +73,25 @@ export default function Mapusers() {
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   if (error) {
-    return <div className="bg-red-100 p-4 rounded">{error}</div>;
+    return (
+      <div className="bg-red-100 border border-red-400 text-red-700 p-4 rounded text-center">
+        {error}
+      </div>
+    );
   }
 
-  if (countriesData.length === 0) {
-    return <div className="p-4 text-center">No location data available</div>;
+  if (locations.length === 0) {
+    return (
+      <div className="text-center py-12 text-gray-600">
+        No location data available.
+      </div>
+    );
   }
 
   return (
@@ -92,48 +99,40 @@ export default function Mapusers() {
       center={[20, 0]}
       zoom={2}
       style={{ height: "100%", width: "100%" }}
-      scrollWheelZoom={true}
-      doubleClickZoom={true}
-      dragging={true}
-      zoomControl={true}
+      scrollWheelZoom
     >
       <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
 
-      {countriesData.map((country) => (
-        <Marker
-          key={country.name}
-          position={[country.lat, country.lng]}
-          icon={defaultIcon}
-        >
+      {locations.map((loc, i) => (
+        <Marker key={i} position={[loc.lat, loc.lng]} icon={defaultIcon}>
           <Popup>
-            <div className="text-center p-1">
-              <div className="flex items-center justify-center mb-2">
-                {country.flag && (
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-2 gap-2">
+                {loc.flag && (
                   <img
-                    src={country.flag}
-                    alt={`${country.name} flag`}
-                    className="h-4 mr-2"
+                    src={loc.flag}
+                    alt={loc.name}
+                    className="w-5 h-4 rounded-sm"
                   />
                 )}
-                <h3 className="font-bold text-lg">{country.name}</h3>
+                <h3 className="font-semibold">{loc.name}</h3>
               </div>
-
               <p className="text-gray-600 mb-2">
-                {country.count} {country.count === 1 ? "Member" : "Members"}
+                {loc.count} {loc.count === 1 ? "member" : "members"}
               </p>
 
-              {country.postId ? (
+              {loc.postId ? (
                 <Link
-                  to={`/posts/${country.postId}`}
-                  className="hover:bg-gray-300 text-amber-50 px-4 py-2 rounded text-sm inline-block"
+                  to={`/posts/${loc.postId}`}
+                  className="inline-block px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
                 >
                   View Story
                 </Link>
               ) : (
-                <p className="text-sm text-gray-500">No stories yet</p>
+                <span className="text-xs text-gray-400">No stories yet</span>
               )}
             </div>
           </Popup>

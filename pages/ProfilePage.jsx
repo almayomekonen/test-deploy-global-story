@@ -1,51 +1,38 @@
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState } from "react";
+import AuthContext from "../context/AuthContext";
 import { getProfileImageUrl } from "../utils/constants";
 import { FaCamera, FaUser } from "react-icons/fa";
-import AuthContext from "../context/AuthContext";
 import api from "../config/axios";
+import toast from "../utils/toast";
 import UserPosts from "../components/posts/UserPosts";
 
 export default function ProfilePage() {
-  const { currentUser, logout } = useContext(AuthContext);
+  const { currentUser, logout, updateProfileImage } = useContext(AuthContext);
 
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(null);
+  const [preview, setPreview] = useState(null);
 
-  useEffect(() => {
-    let timer;
-    if (successMessage || uploadError) {
-      timer = setTimeout(() => {
-        setSuccessMessage(null);
-        setUploadError(null);
-      }, 2000);
-    }
-    return () => clearTimeout(timer);
-  }, [successMessage, uploadError]);
-
-  async function handleImageUpload(event) {
-    const file = event.target.files[0];
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
     if (!file) return;
 
-    const validTypes = ["image/jpeg", "image/png", "image/jpg", "image/gif"];
-    if (!validTypes.includes(file.type)) {
-      setUploadError(
-        "Please select a vaild image file (JPG, PNG, JPEG, or GIF)"
-      );
+    if (
+      !["image/jpeg", "image/png", "image/jpg", "image/gif"].includes(file.type)
+    ) {
+      toast.error("Only JPG, PNG, or GIF allowed");
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setUploadError("Image size should be less than 5MB");
+      toast.error("Max image size: 5MB");
+      return;
     }
+
+    const formData = new FormData();
+    formData.append("profileImage", file);
 
     try {
       setIsUploading(true);
-      setUploadError(null);
-
-      const formData = new FormData();
-      formData.append("profileImage", file);
-
       const token = localStorage.getItem("token");
       const config = {
         headers: {
@@ -54,110 +41,119 @@ export default function ProfilePage() {
         },
       };
 
-      const response = await api.put("/auth/profile-image", formData, config);
-      if (response.data.success) {
-        currentUser.profileImage = response.data.profileImage;
-        setSuccessMessage("Profile image uploaded successfully");
+      const res = await api.put("/auth/profile-image", formData, config);
+
+      if (res.data.success) {
+        toast.success("Image updated!");
+        updateProfileImage(res.data.profileImage);
+        setPreview(null);
+      } else {
+        toast.error("Upload failed");
       }
-    } catch (error) {
-      setUploadError(
-        error.response || "Error uploading image, please try again."
-      );
+    } catch (err) {
+      console.log(err);
+      toast.error("Error uploading image");
     } finally {
       setIsUploading(false);
     }
-  }
+  };
 
   if (!currentUser) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="w-10 h-10 border-t-2 border-b-2 border-blue-600 rounded-full animate-spin" />
       </div>
     );
   }
 
+  const imageSrc = preview
+    ? preview
+    : getProfileImageUrl(currentUser.profileImage);
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-3xl mx-auto">
-        {successMessage && (
-          <div className="bg-green-100 border border-gray-400 text-green-700 px-4 py-3 rounded mb-4">
-            <p>{successMessage}</p>
-          </div>
-        )}
-
-        {uploadError && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            <p>{uploadError}</p>
-          </div>
-        )}
-        <div className="bg-white shadow rounded-lg">
-          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 h-32"></div>
-
-          <div className="p-6 relative">
-            <div className="absolute -top-16 left-6">
-              <div className="w-32 h-32 rounded-full border-4 border-white bg-gray-200 flex items-center justify-center overflow-hidden text-gray-400">
-                {currentUser.profileImage &&
-                currentUser.profileImage !== "default-profile.jpg" ? (
-                  <img
-                    src={getProfileImageUrl(currentUser.profileImage)}
-                    alt={currentUser.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <FaUser className="h-20 w-20" />
-                )}
-              </div>
-
-              <label
-                htmlFor="profile-image-upload"
-                className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white rounded-full cursor-pointer p-2"
-              >
-                <FaCamera className="h-4 w-4" />
-                <input
-                  type="file"
-                  id="profile-image-upload"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageUpload}
-                  disabled={isUploading}
+    <div className="max-w-4xl mx-auto px-4 py-10">
+      <div className="bg-white shadow rounded-lg overflow-hidden">
+        {/* Header with image */}
+        <div className="bg-gradient-to-r from-blue-500 to-indigo-600 h-32 relative">
+          <div className="absolute -bottom-12 left-6 flex items-end gap-3">
+            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white bg-gray-100">
+              {imageSrc ? (
+                <img
+                  src={imageSrc}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
                 />
-              </label>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  <FaUser size={48} />
+                </div>
+              )}
             </div>
 
-            <div className="mt-16">
-              <h1 className="text-2xl font-bold text-gray-900">
-                {currentUser.name}
-              </h1>
-              <p className="text-gray-600">
-                {currentUser.city}, {currentUser.country}
-              </p>
-
-              <div className="mt-2 flex flex-wrap gap-2">
-                <span className="bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-full">
-                  {currentUser.languages &&
-                    currentUser.languages.map((lang, index) => (
-                      <span key={index}>{lang}, </span>
-                    ))}
-                </span>
-              </div>
-
-              <div className="mt-4">
-                <h2 className="text-gray-700 font-semibold mb-2">About Me:</h2>
-                <p className="text-gray-600">{currentUser.bio}</p>
-              </div>
-
-              <div className="mt-6">
-                <button
-                  onClick={logout}
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium cursor-pointer"
-                >
-                  Log Out
-                </button>
-              </div>
-            </div>
+            <label
+              htmlFor="upload-image"
+              className="bg-white hover:bg-gray-100 text-sm px-3 py-2 rounded shadow cursor-pointer flex items-center gap-1"
+            >
+              <FaCamera />
+              {isUploading ? "Uploading..." : "Change"}
+              <input
+                type="file"
+                id="upload-image"
+                hidden
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    setPreview(URL.createObjectURL(file));
+                    handleImageUpload(e);
+                  }
+                }}
+                disabled={isUploading}
+              />
+            </label>
           </div>
         </div>
 
+        {/* User Info */}
+        <div className="pt-16 px-6 pb-8">
+          <h2 className="text-2xl font-bold text-gray-800 mb-1">
+            {currentUser.name}
+          </h2>
+          <p className="text-gray-600">
+            {currentUser.city}, {currentUser.country}
+          </p>
+
+          {currentUser.languages?.length > 0 && (
+            <div className="mt-2">
+              <span className="text-sm font-semibold text-gray-700">
+                Languages:
+              </span>{" "}
+              <span className="text-sm text-gray-600">
+                {currentUser.languages.join(", ")}
+              </span>
+            </div>
+          )}
+
+          {currentUser.bio && (
+            <div className="mt-4">
+              <h3 className="font-semibold text-gray-700 mb-1">About Me</h3>
+              <p className="text-gray-600">{currentUser.bio}</p>
+            </div>
+          )}
+
+          <div className="mt-6">
+            <button
+              onClick={logout}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+            >
+              Log Out
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Posts */}
+      <div className="mt-10">
+        <h3 className="text-2xl font-bold text-gray-800 mb-4">Your Posts</h3>
         <UserPosts />
       </div>
     </div>

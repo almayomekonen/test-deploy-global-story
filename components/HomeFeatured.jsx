@@ -1,102 +1,73 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import api from "../config/axios";
 import { FaComment, FaFire, FaHeart } from "react-icons/fa";
 import { WiStars } from "react-icons/wi";
 import { BsGraphUpArrow } from "react-icons/bs";
 import { getProfileImageUrl, getPostImageUrl } from "../utils/constants";
+import usePostsStore from "../store/usePostsStore";
 
 const FeaturedStories = () => {
-  const [popularPosts, setPopularPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [timeWindow, setTimeWindow] = useState("all");
   const [noPostsInTimeframe, setNoPostsInTimeframe] = useState(false);
+  const { posts, fetchPosts } = usePostsStore();
 
   useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        setLoading(true);
-        setNoPostsInTimeframe(false);
+    fetchPosts(`/posts/popular?time=${timeWindow}`);
+  }, [timeWindow, fetchPosts]);
 
-        const response = await api.get(
-          `/posts/popular?timeWindow=${timeWindow}&limit=3`
-        );
-
-        const posts = response.data.data;
-        if (posts?.length) {
-          setPopularPosts(posts);
-        } else {
-          setPopularPosts([]);
-          if (timeWindow !== "all") {
-            setNoPostsInTimeframe(true);
-          }
-        }
-      } catch (err) {
-        console.error(err);
-        setPopularPosts([]);
-        if (timeWindow !== "all") {
-          setNoPostsInTimeframe(true);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPosts();
-  }, [timeWindow]);
+  useEffect(() => {
+    setNoPostsInTimeframe(!posts.length && timeWindow !== "all");
+  }, [posts, timeWindow]);
 
   const getPostBadge = (post) => {
     if (post.isStaffPick) {
       return (
-        <span className="inline-flex items-center bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
+        <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
           Editor's Pick
         </span>
       );
-    } else if (post.displayFlag === "popular" || post.engagementScore > 10) {
+    }
+    if (post.engagementScore > 10 || post.displayFlag === "popular") {
       return (
-        <span className="inline-flex items-center bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">
+        <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">
           Popular
         </span>
       );
-    } else if (
-      post.displayFlag === "rising" ||
-      (post.engagementScore > 3 && post.engagementScore <= 10)
-    ) {
+    }
+    if (post.engagementScore > 3 || post.displayFlag === "rising") {
       return (
-        <span className="inline-flex items-center bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+        <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
           Rising
         </span>
       );
-    } else {
-      return (
-        <span className="inline-flex items-center bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-          New
-        </span>
-      );
     }
+    return (
+      <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+        New
+      </span>
+    );
   };
 
   const getEmptyStateMessage = () => {
     if (noPostsInTimeframe) {
       switch (timeWindow) {
         case "day":
-          return "No stories created today. Try expanding your time range.";
+          return "No stories created today.";
         case "week":
-          return "No stories created this week. Try expanding your time range.";
+          return "No stories created this week.";
         case "month":
-          return "No stories created this month. Try expanding your time range.";
+          return "No stories created this month.";
         default:
-          return "No stories in the selected time range. Try expanding your search.";
+          return "No stories in this timeframe.";
       }
     }
-
-    return "No featured stories available yet. Stories with engagement will appear here.";
+    return "No featured stories yet. Be the first to create one!";
   };
 
   const TimeFilterButton = ({ value, label, isFirst, isLast }) => (
     <button
       onClick={() => setTimeWindow(value)}
-      className={`px-4 py-2 text-sm font-medium cursor-pointer ${
+      className={`px-4 py-2 text-sm font-medium ${
         isFirst ? "rounded-l-lg" : isLast ? "rounded-r-lg" : ""
       } ${
         timeWindow === value
@@ -127,13 +98,9 @@ const FeaturedStories = () => {
           </div>
         </div>
 
-        {loading ? (
-          <div className="flex justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          </div>
-        ) : popularPosts.length > 0 ? (
+        {posts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {popularPosts.map((post) => (
+            {posts.map((post) => (
               <Link
                 key={post._id}
                 to={`/posts/${post._id}`}
@@ -151,6 +118,7 @@ const FeaturedStories = () => {
                       <span className="text-gray-500">No image available</span>
                     </div>
                   )}
+
                   {post.engagementScore > 0 && (
                     <div className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-md">
                       {post.engagementScore > 10 ? (
@@ -166,7 +134,7 @@ const FeaturedStories = () => {
 
                 <div className="p-4">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                    <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
                       {post.category}
                     </span>
                     {getPostBadge(post)}
@@ -196,11 +164,9 @@ const FeaturedStories = () => {
                       </div>
                     </div>
                   ) : (
-                    <div className="mb-4">
-                      <p className="text-sm text-gray-500">
-                        Author information unavailable
-                      </p>
-                    </div>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Author unavailable
+                    </p>
                   )}
 
                   <div className="text-xs text-gray-500 mt-2 flex items-center gap-4">
@@ -222,14 +188,14 @@ const FeaturedStories = () => {
               {noPostsInTimeframe && (
                 <button
                   onClick={() => setTimeWindow("all")}
-                  className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-md font-medium"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-md font-medium"
                 >
                   View All Stories
                 </button>
               )}
               <Link
                 to="/create-post"
-                className="inline-block bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-md font-medium"
+                className="bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-md font-medium"
               >
                 Create New Story
               </Link>
@@ -238,10 +204,10 @@ const FeaturedStories = () => {
         )}
 
         <div className="text-center mt-8">
-          {popularPosts.length > 0 && (
+          {posts.length > 0 && (
             <Link
               to="/posts"
-              className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-md font-medium"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-md font-medium"
             >
               Explore All Stories
             </Link>

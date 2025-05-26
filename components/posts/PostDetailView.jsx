@@ -26,6 +26,7 @@ export default function PostDetailView({
   handleDelete,
   handleImageChange,
   handleCommentDelete,
+  likeInProgress,
 }) {
   const [showAllComments, setShowAllComments] = useState(false);
 
@@ -128,6 +129,7 @@ export default function PostDetailView({
               <button
                 onClick={handleLike}
                 className="flex items-center text-gray-500 hover:text-blue-600"
+                disabled={likeInProgress}
               >
                 {liked ? (
                   <FaHeart className="text-red-500 mr-1 cursor-pointer" />
@@ -248,49 +250,49 @@ function renderComments(
             className="w-10 h-10 rounded-full mr-3 object-cover"
           />
 
-          <div className="flex-grow">
-            <div className="bg-gray-50 rounded-lg p-3">
-              <div className="flex justify-between space-x-2 mb-1">
-                <span className="font-semibold text-sm">{comment.name}</span>
-                <span className="text-xs text-gray-500">
+          <div className="bg-gray-50 rounded-lg p-3 flex-1">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="font-medium text-gray-800">{comment.name}</p>
+                <p className="text-xs text-gray-500">
                   {formatDate(comment.date)}
-                </span>
+                </p>
               </div>
-              <div className="flex justify-between">
-                <p className="text-gray-700">{comment.text}</p>
-                {currentUser &&
-                  (currentUser._id === (comment.user?._id || comment.user) ||
-                    (post.user && currentUser._id === post.user._id)) && (
-                    <button
-                      onClick={() => handleCommentDelete(comment._id)}
-                      className="text-gray-400 hover:text-red-500 cursor-pointer"
-                      aria-label="Delete comment"
-                    >
-                      <FaTrash size={14} />
-                    </button>
-                  )}
-              </div>
+
+              {currentUser && comment.user === currentUser._id && (
+                <button
+                  onClick={() => handleCommentDelete(comment._id)}
+                  className="text-gray-500 hover:text-red-600"
+                >
+                  <FaTrash size={12} />
+                </button>
+              )}
             </div>
+            <p className="mt-2 text-gray-700">{comment.text}</p>
           </div>
         </div>
       ))}
 
-      {sortedComments.length > 2 && (
-        <div className="pt-2 text-center">
-          <button
-            onClick={() => setShowAllComments(!showAllComments)}
-            className="flex cursor-pointer items-center justify-center mx-auto text-blue-600 hover:text-blue-800 focus:outline-none gap-1"
-          >
-            {showAllComments
-              ? "Show Less"
-              : `Show More Comments (${sortedComments.length - 2} more)`}
-            <FaChevronDown
-              className={`transform transition-transform ${
-                showAllComments ? "rotate-180" : ""
-              }`}
-            />
-          </button>
-        </div>
+      {post.comments.length > 2 && !showAllComments && (
+        <button
+          onClick={() => setShowAllComments(true)}
+          className="flex items-center text-blue-600 hover:text-blue-800"
+        >
+          <FaChevronDown className="mr-1" />
+          <span>
+            Show all {post.comments.length}{" "}
+            {post.comments.length === 1 ? "comment" : "comments"}
+          </span>
+        </button>
+      )}
+
+      {showAllComments && post.comments.length > 2 && (
+        <button
+          onClick={() => setShowAllComments(false)}
+          className="text-blue-600 hover:text-blue-800"
+        >
+          Show fewer comments
+        </button>
       )}
     </div>
   );

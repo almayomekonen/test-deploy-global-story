@@ -35,22 +35,27 @@ export default function PostsPage() {
 
       <div className="mb-8">
         <div className="flex flex-wrap gap-2">
-          {categories.map((category) => (
-            <button
-              key={category}
-              onClick={() =>
-                setSelectCategory(category === "All" ? "" : category)
-              }
-              className={`px-4 py-2 rounded-md cursor-pointer ${
-                (category === "All" && selectCategory === "") ||
-                category === selectCategory
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-              }`}
-            >
-              {category}
-            </button>
-          ))}
+          {categories.map((category) => {
+            const isActive =
+              (category === "All" && selectCategory === "") ||
+              category === selectCategory;
+
+            return (
+              <button
+                key={category}
+                onClick={() =>
+                  setSelectCategory(category === "All" ? "" : category)
+                }
+                className={`px-4 py-2 rounded-md ${
+                  isActive
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                }`}
+              >
+                {category}
+              </button>
+            );
+          })}
         </div>
       </div>
 
